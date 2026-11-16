@@ -1,0 +1,237 @@
+# Soil sensor: Seeed XIAO ESP32-C6 on Thread, 18650 battery, deep sleep between reports.
+#
+# Wiring (see the soldering guide):
+#   D0 / GPIO0   battery divider midpoint (2 x 1 MOhm + 100 nF) -> half the pack voltage
+#   D1 / GPIO1   moisture sensor AOUT
+#   D2 / GPIO2   moisture sensor VCC (powered only while reading)
+#   D3 / GPIO21  DS18B20 data (4.7 kOhm pull-up to 3V3)
+#   Antenna: on-module RF switch (GPIO3 low = switch powered, GPIO14 low = built-in)
+#
+# Behaviour: wakes every ${sleep_time}, joins Thread, reports once Home Assistant
+# connects, then sleeps. Other API clients (the dashboard's log viewer) don't
+# trigger the report or the sleep. A 60 s run limit forces sleep if Thread or HA never comes up.
+# For OTA: turn on ${stay_awake_entity} in HA; the sensor stays awake from its
+# next wake until you turn it off again.
+#
+# Calibration lives on the device, editable from Home Assistant (device page ->
+# Configuration): with the stay-awake toggle on, read "Soil moisture raw" in dry
+# air (0 %) and in water up to the line (100 %) and enter them as "Moisture
+# calibration dry" / "wet". Saved in flash; the defaults below only seed a new board.
+#
+# Battery protection: checked at every boot. Below ${battery_low_v} V it wakes once a
+# day; below ${battery_cutoff_v} V once a week, so a forgotten charge can't run the
+# cell flat. Charging brings it back to normal on the next wake.
+
+substitutions:
+  name: soil-sensor-1
+  friendly_name: Soil Sensor 1
+  sleep_time: 15min
+  sensor_settle: 1s
+  moisture_dry_v: "2.52" # seed values only; real ones are set in HA
+  moisture_wet_v: "1.20"
+  stay_awake_entity: input_boolean.soil_sensors_stay_awake
+  battery_low_v: "3.40"
+  battery_cutoff_v: "3.30"
+  low_battery_sleep_ms: "86400000" # 24 h
+  cutoff_sleep_ms: "604800000" # 7 days
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100 # sensors set up; runs before the network comes up
+    then:
+      - component.update: battery_voltage
+      - lambda: |-
+          // Sets the sleep length for this wake; every path to sleep uses it.
+          const float v = id(battery_voltage).state;
+          if (std::isnan(v)) return;
+          if (v < ${battery_cutoff_v}) {
+            ESP_LOGW("battery", "%.2f V is below cutoff; next wake in 7 days", v);
+            id(deep_sleep_ctl).set_sleep_duration(${cutoff_sleep_ms});
+          } else if (v < ${battery_low_v}) {
+            ESP_LOGW("battery", "%.2f V is low; next wake in 24 h", v);
+            id(deep_sleep_ctl).set_sleep_duration(${low_battery_sleep_ms});
+          }
+
+esp32:
+  board: seeed_xiao_esp32c6
+  variant: esp32c6
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+logger:
+  level: WARN
+
+network:
+  enable_ipv6: true
+
+openthread:
+  tlv: !secret thread_tlv
+  device_type: MTD
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  on_client_connected:
+    - script.execute: report
+
+ota:
+  - platform: esphome
+    encryption: # reuses the api: encryption key
+    on_begin: # an OTA over Thread can outlast the 60 s run limit
+      - deep_sleep.prevent: deep_sleep_ctl
+    on_error:
+      - deep_sleep.allow: deep_sleep_ctl
+
+deep_sleep:
+  id: deep_sleep_ctl
+  run_duration: 60s # failsafe
+  sleep_duration: ${sleep_time}
+
+one_wire:
+  - platform: gpio
+    pin: GPIO21
+
+output:
+  - platform: gpio
+    id: soil_power
+    pin: GPIO2
+
+switch:
+  # XIAO ESP32C6 antenna RF switch, set before the radio starts.
+  - platform: gpio
+    id: rf_switch_power # low = RF switch powered
+    pin: GPIO3
+    restore_mode: ALWAYS_OFF
+    internal: true
+  - platform: gpio
+    id: antenna_select # low = built-in, high = U.FL
+    pin: GPIO14
+    restore_mode: ALWAYS_OFF
+    internal: true
+
+sensor:
+  - platform: dallas_temp
+    id: soil_temperature
+    name: Soil temperature
+    resolution: 10 # 0.25 C steps, ~190 ms conversion
+    update_interval: never
+
+  - platform: adc
+    id: soil_moisture_raw
+    name: Soil moisture raw
+    pin: GPIO1
+    attenuation: 12db
+    samples: 4
+    update_interval: never
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 3
+    entity_category: diagnostic
+    on_value:
+      - component.update: soil_moisture
+
+  - platform: template
+    id: soil_moisture
+    name: Soil moisture
+    unit_of_measurement: "%"
+    device_class: moisture
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: never
+    lambda: |-
+      const float raw = id(soil_moisture_raw).state;
+      const float dry = id(moisture_dry_v).state;
+      const float wet = id(moisture_wet_v).state;
+      if (std::isnan(raw) || std::isnan(dry) || std::isnan(wet) || dry <= wet) return NAN;
+      const float pct = (dry - raw) / (dry - wet) * 100.0f;
+      return std::max(0.0f, std::min(100.0f, pct));
+
+  - platform: adc
+    id: battery_voltage
+    name: Battery voltage
+    pin: GPIO0
+    attenuation: 12db
+    samples: 8
+    update_interval: never
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 2
+    entity_category: diagnostic
+    filters:
+      - multiply: 2.0
+
+number:
+  # Per-probe calibration, set from Home Assistant; recomputes moisture on change.
+  - platform: template
+    id: moisture_dry_v
+    name: Moisture calibration dry
+    unit_of_measurement: V
+    min_value: 0.5
+    max_value: 3.3
+    step: 0.001
+    mode: box
+    optimistic: true
+    restore_value: true
+    initial_value: ${moisture_dry_v}
+    entity_category: config
+    on_value:
+      - component.update: soil_moisture
+  - platform: template
+    id: moisture_wet_v
+    name: Moisture calibration wet
+    unit_of_measurement: V
+    min_value: 0.5
+    max_value: 3.3
+    step: 0.001
+    mode: box
+    optimistic: true
+    restore_value: true
+    initial_value: ${moisture_wet_v}
+    entity_category: config
+    on_value:
+      - component.update: soil_moisture
+
+binary_sensor:
+  - platform: homeassistant
+    id: stay_awake
+    entity_id: ${stay_awake_entity}
+    on_press:
+      - deep_sleep.prevent: deep_sleep_ctl
+    on_release:
+      - deep_sleep.enter: deep_sleep_ctl
+
+script:
+  - id: report
+    mode: single
+    then:
+      # Any API client fires on_client_connected, and the dashboard's log viewer also
+      # subscribes to states. Only Home Assistant sends us the toggle's state, so wait
+      # for that; other clients get nothing (the 60 s failsafe still applies).
+      - wait_until:
+          condition:
+            lambda: return id(stay_awake).has_state();
+          timeout: 45s
+      - if:
+          condition:
+            lambda: return !id(stay_awake).has_state();
+          then:
+            - script.stop: report
+      - component.update: soil_temperature # starts the conversion; publishes when done
+      - component.update: battery_voltage # read before the probe draws current
+      - output.turn_on: soil_power
+      - delay: ${sensor_settle}
+      - component.update: soil_moisture_raw # on_value recomputes the %
+      - output.turn_off: soil_power
+      - delay: 3s
+      # HA's first state for the toggle doesn't fire on_press, so decide here.
+      - if:
+          condition:
+            binary_sensor.is_on: stay_awake
+          then:
+            - deep_sleep.prevent: deep_sleep_ctl
+          else:
+            - deep_sleep.enter: deep_sleep_ctl
