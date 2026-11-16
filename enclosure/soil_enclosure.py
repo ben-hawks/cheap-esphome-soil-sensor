@@ -1,23 +1,33 @@
 """
-Outdoor soil-sensor enclosure: XIAO ESP32-C6 + wrapped 18650 pack (69 x 22.2 x 18.6) +
-Capacitive Soil Moisture Sensor v2.0 (22 x 100 mm PCB).
+Outdoor soil-sensor enclosure: XIAO ESP32-C6 + wrapped 18650 pack (69 x ~19 mm) +
+Capacitive Soil Moisture Sensor v2.0 (22 x 100 mm PCB) + DS18B20 probe.
 
-The probe passes through a slot in the floor. The sensor's electronics head
-stays inside the box. A slide-in fork engages the two side grooves on the
-sensor PCB and screws to two pillars, so the probe can't be pulled out or
-pushed in further. The floor's underside sits 13 mm below the probe's warning
-line, inside the maker's recommended band, so the box rests on the soil. Two printed blade stakes drop through
-sockets on the left and right walls to stop it rocking.
+Compact layout (top view, front at the bottom):
 
-Outputs (STL, mm):
-  box.stl          print floor-down, no supports
-  lid.stl          already flipped (top face on the bed), no supports
-  sensor_fork.stl  print flat
-  gasket_tpu.stl   optional, TPU, sits in the lid groove
-  stake.stl        print 2, flat
+    rear   [PG7 gland]  [ probe in latch rails ]
+           [ XIAO | perfboard ]  <- on a lift-out carrier, standing over the cell
+    front  [========= 18650 in two snap cradles =========]
+           [ stake sleeve ]          [ stake sleeve ]
 
+The probe passes through a slot in the floor. Two card-guide rails grip its side edges
+from the floor up, so it can't rock, and a snap latch in each rail clicks into the
+probe's side grooves to set the depth. The floor's underside sits 13 mm below the probe's
+warning line, inside the maker's recommended band, so the box rests on the soil.
+
+A board carrier (separate part) stands over the battery: its legs drop into channels on the
+end walls and double as the cell's end stops. The XIAO and the optional perfboard slide into
+slotted posts on it. Lift it out (boards and all) to get at the cell.
+
+Two printed blade stakes drop through sealed sleeves along the front wall, inside the box.
 A DS18B20 waterproof probe (6 x 50 mm tube) is buried whole beside the moisture probe;
 its cable enters through a PG7 gland screwed into a threaded boss in the floor.
+
+Outputs (STL, mm):
+  box.stl            print floor-down, no supports
+  lid.stl            already flipped (top face on the bed), no supports
+  board_carrier.stl  already laid flat (back face on the bed), no supports
+  gasket_tpu.stl     optional, TPU, sits in the lid groove
+  stake.stl          print 2, flat
 
 Requires: pip install manifold3d trimesh numpy
 Edit the PARAMETERS block and re-run: python3 soil_enclosure.py [output_dir]
@@ -32,80 +42,93 @@ SEG = 64
 
 WALL = 2.4            # 6 perimeters at 0.4 nozzle
 FLOOR = 3.0
-IX, IY, IZ = 90.0, 58.0, 56.0   # interior size (X width, Y depth, Z height)
+IX, IY, IZ = 78.0, 48.0, 58.0   # interior size (X width, Y depth, Z height)
 OUT_R = 4.0           # outer corner radius
 
-# Battery: ELXJAR wrapped 18650 pack with leads, 69 mm long, ~19 mm cell. Bay along the
-# front wall; two snap cradles hold it (press it down through the opening, leads on top).
-BATT_LEN, BATT_W = 72.0, 25.0   # bay length (X) / width (Y)
-BATT_Y0 = 3.0                   # gap from the front interior wall (room for a zip tie)
+# Battery: ELXJAR wrapped 18650 pack with leads, ~69 mm long, ~19 mm cell, lying along X
+# near the front wall in two snap cradles (press it down through the opening, leads on top).
+CELL_LEN = 69.0
 CELL_D = 19.0                   # measured cell diameter
+CELL_Y = 18.0                   # interior Y of the cell axis
+CELL_LIFT = 1.0                 # cell bottom above the floor
 CRADLE_CLEAR = 0.2              # radial clearance in the cradle
 CRADLE_WALL = 2.2               # cradle ring thickness
 CRADLE_OPEN = 17.6              # snap opening; ~1.4 mm narrower than the cell
 CRADLE_T = 6.0                  # cradle thickness along the cell
-CRADLE_X = 26.0                 # cradles at centre +/- this
+CRADLE_X = 15.0                 # cradles at centre +/- this (kept clear of the PG7 gland)
 
 # Sensor PCB
 PCB_W, PCB_T = 22.0, 1.6
 SLOT_W, SLOT_T = 22.6, 2.0      # floor slot (seal it with silicone after fitting)
-SENSOR_Y = 40.0                 # interior Y of the PCB plane
+SENSOR_Y = 37.0                 # interior Y of the PCB plane
 GROOVE_DEPTH = 1.2              # how far each side groove cuts into the PCB edge
+GROOVE_H = 2.2                  # groove height
 # Probe depth, measured from the top edge of the sensor PCB (from the product diagram):
 GROOVE_FROM_TOP = 19.8          # side grooves
 SOIL_FROM_TOP = 44.0            # floor underside = soil surface; recommended band ~41-64,
                                 # red warning line ~31 (never bury past it)
 GROOVE_Z = SOIL_FROM_TOP - FLOOR - GROOVE_FROM_TOP   # groove centre above floor's top face
-FORK_T = 1.8                    # fork plate thickness (groove is ~2.2 tall)
-PILLAR = 8.0
 
-# XIAO ESP32-C6 in a card guide: two slotted rails grip its long edges; USB-C up,
-# top side (wires) faces the open interior, flat underside (divider / pull-up) the wall
-XIAO_BOARD_W = 17.8             # board width (edge to edge)
-XIAO_PCB_T = 1.0                # measure yours; slot = this + XIAO_SLOT_CLEAR
-XIAO_SLOT_CLEAR = 0.3
-XIAO_GRIP = 1.0                 # how far the rails overlap each board face
-XIAO_RAIL_H = 8.0               # covers only the unused bottom pin rows (D4-D6 / D7-D9)
-XIAO_WALL_GAP = 13.0            # board plane to right interior wall (underside parts + fingers)
-XIAO_Y0 = 31.4                  # interior Y of the board's front edge
+# Probe rails + snap latches. Each rail: two cheeks that grip the PCB faces from the floor
+# up (stops rocking), and behind them a springy beam whose tooth clicks into the side groove.
+# The tooth's flat underside stops the probe being pushed up (soil pushing back while you
+# press the box in); its sloped top lets the probe snap in from above.
+RAIL_ENGAGE = 1.5               # how far the cheeks overlap the PCB edge
+RAIL_SLOT_CLEAR = 0.3           # slot = PCB_T + this
+CHEEK_T = 3.0                   # cheek thickness (Y)
+BEAM_T = 1.6                    # latch beam thickness (X): stiffness
+BEAM_GAP = 0.6                  # PCB edge to beam face
+BEAM_HW = 2.5                   # latch beam half-width (Y)
+LATCH_SLIT = 0.4                # clearance around the beam
+LATCH_BASE = 3.0                # beam is anchored below this height
+TOOTH_W = 1.4                   # tooth width (Y), fits the slot
+TOOTH_REACH = 0.2               # tooth tip stops this short of the groove bottom
+RAIL_ABOVE = 4.5                # rails and beams continue this far above the groove (finger tab)
 
-# Optional perfboard (battery junction + divider) in a card guide on the rear wall, behind the
-# probe. Component side faces the probe, solder side faces the wall. Harmless if unused.
-PERF_GUIDE = True
+# Board carrier (separate part) over the cell
+CARRIER_T = 8.0                 # carrier thickness (Y), centred on the cell axis
+CARRIER_Z0 = 21.0               # crossbar underside above the floor (cell top is ~20.2)
+CROSSBAR_H = 3.0
+LEG_T = 3.2                     # leg thickness (X); legs also stop the cell sliding
+LEG_CLEAR = 0.3                 # leg to end wall / channel ribs
+POST_W = 4.0
+CARD_SLOT_DEPTH = 1.4           # board-edge slots: grip 1.0 + 0.4 clearance
+XIAO_BOARD_W = 17.8
+XIAO_PCB_T = 1.0                # measure yours
+XIAO_GRIP_H = 8.0               # grips only the unused bottom pin rows (D4-D6 / D7-D9)
 PERF_W, PERF_H = 30.0, 30.0     # measure yours
-PERF_T = 1.6                    # measure yours; slot = this + PERF_SLOT_CLEAR
-PERF_SLOT_CLEAR = 0.3
-PERF_GRIP = 1.0                 # rail overlap on each side edge (clear of the outer hole columns)
-PERF_WALL_GAP = 4.8             # board mid-plane to rear interior wall (solder side + links)
-PERF_Z0 = 24.0                  # board bottom edge above the floor (clears the probe clip)
+PERF_T = 1.6                    # measure yours
+CARD_SLOT_CLEAR = 0.3
 
 # Lid / screws
 BOSS_R = 4.0
 INSERT_D, INSERT_DEPTH = 4.0, 8.0   # M3 heat-set insert (use 2.6 for self-tapping)
 LID_T = 3.0
 SKIRT_T, SKIRT_GAP, SKIRT_H = 2.0, 0.4, 8.0
-GROOVE_W, GROOVE_H = 2.0, 1.2       # gasket groove in the lid underside
+GROOVE_W, GROOVE_H_LID = 2.0, 1.2   # gasket groove in the lid underside
 SCREW_CLEAR = 3.4
 
 # DS18B20 waterproof probe (6 x 50 mm stainless tube) goes down through the floor
 # The whole steel tube is buried; only its cable passes the floor, through a PG7 cable gland
 # that screws into a threaded boss (no locknut, so nothing protrudes under the floor).
-DS_OFFSET_X = -33.0             # from the moisture probe centre, in the PCB plane (off its edge)
+DS_OFFSET_X = -24.0             # from the moisture probe centre, in the PCB plane (off its edge)
 DS_TIP_DEPTH = 60.0             # tube tip below the soil surface (floor underside)
 DS_TUBE_LEN, DS_TUBE_D = 50.0, 6.0
 PG7_MAJOR = 12.5                # PG7 thread OD
 PG7_PITCH = 1.27                # 20 TPI
 PG7_CLEAR = 0.3                 # radial printing clearance; raise if the gland won't thread in
 PG7_DEPTH = 0.7                 # modelled thread depth
-GLAND_BOSS_D = 21.0
+GLAND_BOSS_D = 17.5
 GLAND_BOSS_H = 6.0              # boss + floor = 9 mm of thread
+GLAND_HEX_R = 8.7               # PG7 body/cap across corners / 2 (for clearance checks)
 
 VENT_D = 0.0          # e.g. 12.4 for an M12 breather vent in the rear wall; 0 = none
-# Blade stakes: the blade's broad face resists rocking front-to-back (the box's narrow axis)
+# Blade stakes in sleeves along the front wall; the broad face resists front-to-back rocking
 STAKE_W, STAKE_T = 16.0, 4.0     # blade width (X) / thickness (Y)
-STAKE_DEPTH = 80.0               # below the floor, incl. tip (probe goes ~66 mm deep)
-SOCKET_H = 20.0                  # socket height on the box wall
-SOCKET_WALL = 3.0
+STAKE_DEPTH = 80.0               # below the floor, incl. tip (probe goes ~54 mm deep)
+STAKE_X = 18.0                   # sleeves at centre +/- this
+SLEEVE_H = 20.0                  # sleeve height above the floor
+SLEEVE_WALL = 2.0
 STAKE_CLEAR = 0.4
 # --------------------------------------------
 
@@ -121,11 +144,17 @@ def rbox(x, y, z, r, at=(0, 0, 0)):
     m = Manifold.batch_hull([cyl(z, r, (px, py, 0)) for px, py in pts])
     return m.translate(list(at))
 
+def box_x(x0, x1, y0, y1, z0, z1):
+    """Axis-aligned block from min/max corners (order-insensitive)."""
+    xa, xb = sorted((x0, x1)); ya, yb = sorted((y0, y1)); za, zb = sorted((z0, z1))
+    return cube(xb - xa, yb - ya, zb - za, (xa, ya, za))
+
 W, D = IX + 2 * WALL, IY + 2 * WALL
 H = FLOOR + IZ
 ox, oy, oz = WALL, WALL, FLOOR          # interior origin
 cx = ox + IX / 2                         # interior centre X
 sy = oy + SENSOR_Y                       # PCB plane Y (absolute)
+bcy = oy + CELL_Y                        # cell axis Y (absolute)
 
 boss_xy = [(ox + BOSS_R, oy + BOSS_R), (ox + IX - BOSS_R, oy + BOSS_R),
            (ox + BOSS_R, oy + IY - BOSS_R), (ox + IX - BOSS_R, oy + IY - BOSS_R)]
@@ -138,18 +167,10 @@ for bx, by in boss_xy:
     box += cyl(IZ, BOSS_R, (bx, by, oz))
     box -= cyl(INSERT_DEPTH + 0.01, INSERT_D / 2, (bx, by, H - INSERT_DEPTH))
 
-# battery bay: end stops, two snap cradles, two zip-tie tunnels (backup)
-bx0 = cx - BATT_LEN / 2
-by0 = oy + BATT_Y0
-bcy = by0 + BATT_W / 2                       # cell axis Y
-for x in (bx0 - 3, bx0 + BATT_LEN):
-    box += cube(3, BATT_W, 6, (x, by0, oz))
-for tx in (cx - 18, cx + 18):
-    box += cube(8, BATT_W, 3.2, (tx - 4, by0, oz))
-    box -= cube(4.5, BATT_W + 2, 2.0, (tx - 2.25, by0 - 1, oz))   # tie passes along Y
+# battery: two snap cradles (the carrier legs are the end stops)
 r_in = CELL_D / 2 + CRADLE_CLEAR
 r_out = r_in + CRADLE_WALL
-bcz = oz + 3.4 + r_in                        # cell sits just clear of the tie bridges
+bcz = oz + CELL_LIFT + r_in
 _open_z = bcz + (r_in ** 2 - (CRADLE_OPEN / 2) ** 2) ** 0.5
 for cxx in (cx - CRADLE_X, cx + CRADLE_X):
     x0 = cxx - CRADLE_T / 2
@@ -160,14 +181,60 @@ for cxx in (cx - CRADLE_X, cx + CRADLE_X):
     cradle -= cube(CRADLE_T + 2, CRADLE_OPEN, r_out + 2, (x0 - 1, bcy - CRADLE_OPEN / 2, _open_z))
     box += cradle
 
-# sensor: floor slot + two pillars (outside PCB width) for the fork
-box -= cube(SLOT_W, SLOT_T, FLOOR + 2, (cx - SLOT_W / 2, sy - SLOT_T / 2, -1))
-pillar_h = GROOVE_Z - FORK_T / 2           # fork top face sits in the groove
-pillar_cx = PCB_W / 2 + 0.3 + PILLAR / 2
+# stake sleeves along the front wall (the wall is the sleeve's front face)
+st_hx = (STAKE_W + STAKE_CLEAR) / 2
+st_ty = STAKE_T + STAKE_CLEAR
+stake_x = {}
 for s in (-1, 1):
-    px = cx + s * pillar_cx
-    box += cube(PILLAR, PILLAR, pillar_h, (px - PILLAR / 2, sy - PILLAR / 2, oz))
-    box -= cyl(7, 0.9, (px, sy, oz + pillar_h - 6.5))           # M2 self-tap pilot
+    sxc = cx + s * STAKE_X
+    box += box_x(sxc - st_hx - SLEEVE_WALL, sxc + st_hx + SLEEVE_WALL, oy - 0.5, oy + st_ty + SLEEVE_WALL,
+                 oz - 0.5, oz + SLEEVE_H)
+    stake_x[s] = sxc
+for s in (-1, 1):
+    sxc = cx + s * STAKE_X
+    box -= box_x(sxc - st_hx, sxc + st_hx, oy, oy + st_ty, -1, oz + SLEEVE_H + 1)
+
+# carrier leg channels: a pair of ribs on each end wall
+leg_y0, leg_y1 = bcy - CARRIER_T / 2, bcy + CARRIER_T / 2
+RIB_T, RIB_D, RIB_H = 1.2, 2.0, 30.0
+for xw, sgn in ((ox, 1), (ox + IX, -1)):
+    for yy in (leg_y0 - LEG_CLEAR - RIB_T, leg_y1 + LEG_CLEAR):
+        box += box_x(xw - sgn * 0.5, xw + sgn * RIB_D, yy, yy + RIB_T, oz - 0.5, oz + RIB_H)
+
+# probe: floor slot + two latch rails
+box -= cube(SLOT_W, SLOT_T, FLOOR + 2, (cx - SLOT_W / 2, sy - SLOT_T / 2, -1))
+slot_hw = (PCB_T + RAIL_SLOT_CLEAR) / 2
+x_in = PCB_W / 2 - RAIL_ENGAGE                 # cheek inner face (|x| from cx)
+x_beam = PCB_W / 2 + BEAM_GAP                  # beam inner face
+x_beam_out = x_beam + BEAM_T
+x_cheek_out = x_beam - LATCH_SLIT              # cheeks stop short of the beam
+x_rail_out = x_beam_out + 1.4                  # frame around the beam's sides
+rail_top = GROOVE_Z + RAIL_ABOVE
+y_cheek = slot_hw + CHEEK_T                    # rail half-depth (Y)
+zb = oz + GROOVE_Z - GROOVE_H / 2 + 0.1        # tooth underside
+for s in (-1, 1):
+    X = lambda u: cx + s * u
+    # base block the beam grows from
+    box += box_x(X(x_in), X(x_rail_out), sy - y_cheek, sy + y_cheek, oz - 0.5, oz + LATCH_BASE)
+    for t in (-1, 1):
+        # cheek on each face of the PCB
+        box += box_x(X(x_in), X(x_cheek_out), sy + t * slot_hw, sy + t * y_cheek, oz - 0.5, oz + rail_top)
+        # side frame beside the beam (joins the cheek, leaves the beam free)
+        box += box_x(X(x_in), X(x_rail_out), sy + t * (BEAM_HW + LATCH_SLIT), sy + t * y_cheek,
+                     oz - 0.5, oz + rail_top)
+    # the springy beam
+    box += box_x(X(x_beam), X(x_beam_out), sy - BEAM_HW, sy + BEAM_HW, oz + LATCH_BASE - 0.5, oz + rail_top)
+    # tooth: flat underside, 45 deg lead-in on top
+    tip = PCB_W / 2 - GROOVE_DEPTH + TOOTH_REACH
+    root = x_beam + 0.3
+    prof = CrossSection([[(tip, 0.0), (root, 0.0), (root, 0.6 + (root - tip)), (tip, 0.6)]])
+    tooth = prof.extrude(TOOTH_W).rotate([90, 0, 0]).translate([0, TOOTH_W / 2, 0])  # profile in XZ, width in Y
+    if s < 0:
+        tooth = tooth.mirror([1, 0, 0])
+    box += tooth.translate([cx, sy, zb])
+
+# the PCB passes through both base blocks
+box -= box_x(cx - PCB_W / 2 - 0.4, cx + PCB_W / 2 + 0.4, sy - slot_hw, sy + slot_hw, oz - 1, oz + LATCH_BASE + 0.01)
 
 # DS18B20: threaded boss for a PG7 cable gland (the tube itself is buried below the floor)
 dsx = cx + DS_OFFSET_X
@@ -185,50 +252,43 @@ _rc = PG7_MAJOR / 2 + PG7_CLEAR
 box -= Manifold.cylinder(0.8 + 0.01, _rc + 0.8, _rc, SEG).translate([dsx, sy, -0.01])
 box -= Manifold.cylinder(0.8 + 0.01, _rc, _rc + 0.8, SEG).translate([dsx, sy, oz + GLAND_BOSS_H - 0.8])
 
-# XIAO card guide on the right side
-xbx = ox + IX - XIAO_WALL_GAP               # board mid-plane X
-xy0 = oy + XIAO_Y0                          # board front edge Y
-xy1 = xy0 + XIAO_BOARD_W                    # board rear edge Y
-slot_w = XIAO_PCB_T + XIAO_SLOT_CLEAR
-RAIL_X, RAIL_Y = 6.0, 4.0
-for edge_y, sgn in ((xy0, -1), (xy1, 1)):   # sgn points away from the board
-    ry0 = edge_y - RAIL_Y + XIAO_GRIP if sgn < 0 else edge_y - XIAO_GRIP
-    box += cube(RAIL_X, RAIL_Y, XIAO_RAIL_H, (xbx - RAIL_X / 2, ry0, oz))
-    sy0 = edge_y - 0.4 if sgn < 0 else edge_y - XIAO_GRIP - 0.5
-    box -= cube(slot_w, XIAO_GRIP + 0.9, XIAO_RAIL_H + 1, (xbx - slot_w / 2, sy0, oz + 0.01))
-
-# perfboard card guide on the rear wall
-if PERF_GUIDE:
-    pby = oy + IY - PERF_WALL_GAP               # board mid-plane Y
-    pslot = PERF_T + PERF_SLOT_CLEAR
-    PRAIL_X, PRAIL_FRONT = 5.0, 2.2             # rail width; rail material in front of the board
-    prail_y0 = pby - pslot / 2 - PRAIL_FRONT
-    prail_h = PERF_Z0 + PERF_H - 4.0            # top 4 mm of the board stands proud for a grip
-    for sg in (-1, 1):
-        edge = cx + sg * PERF_W / 2
-        rx0 = (edge - PERF_GRIP) if sg > 0 else (edge + PERF_GRIP - PRAIL_X)
-        box += cube(PRAIL_X, oy + IY + 0.5 - prail_y0, prail_h, (rx0, prail_y0, oz))
-        # slot: edge clearance 0.4, runs from PERF_Z0 up through the top
-        sx0 = (edge - PERF_GRIP) if sg > 0 else (edge - 0.4)
-        box -= cube(PERF_GRIP + 0.4, pslot, prail_h, (sx0, pby - pslot / 2, oz + PERF_Z0))
-
-# stake sockets, left and right, at mid-depth
-SOCK_INNER = SOCKET_WALL + 2.0     # thicker on the box side so the stake head clears the wall
-sock_x = STAKE_W + STAKE_CLEAR + SOCKET_WALL + SOCK_INNER
-sock_y = STAKE_T + STAKE_CLEAR + 2 * SOCKET_WALL
-stake_x = {}
-for s_ in (-1, 1):
-    x0 = -sock_x if s_ < 0 else W - 1.0
-    sock = rbox(sock_x + 1.0, sock_y, SOCKET_H, 2.0, (x0, D / 2 - sock_y / 2, 0))
-    hx0 = (x0 + SOCKET_WALL) if s_ < 0 else (W + SOCK_INNER)
-    sock -= cube(STAKE_W + STAKE_CLEAR, STAKE_T + STAKE_CLEAR, SOCKET_H + 2,
-                 (hx0, D / 2 - (STAKE_T + STAKE_CLEAR) / 2, -1))
-    stake_x[s_] = hx0 + STAKE_CLEAR / 2
-    box += sock
-
 if VENT_D > 0:
     v = Manifold.cylinder(WALL + 2, VENT_D / 2, VENT_D / 2, SEG).rotate([-90, 0, 0])
-    box -= v.translate([ox + 18, D - WALL - 1, H - 14])
+    box -= v.translate([cx + 18, D - WALL - 1, H - 14])
+
+# ---------------- BOARD CARRIER (modelled in place; exported lying on its back) ----------------
+# XIAO on the left (USB-C up, top side toward the probe), perfboard on the right
+# (component side toward the probe). Positions are |x| from cx.
+cz0, cz1 = oz + CARRIER_Z0, oz + CARRIER_Z0 + CROSSBAR_H     # crossbar; boards stand on cz1
+leg_out = IX / 2 - LEG_CLEAR
+leg_in = leg_out - LEG_T
+GRIP = CARD_SLOT_DEPTH - 0.4                                 # board edge inside its member
+xiao_x0 = -(leg_in + GRIP)                                   # board edges (relative to cx)
+xiao_x1 = xiao_x0 + XIAO_BOARD_W
+perf_x1 = leg_in + GRIP
+perf_x0 = perf_x1 - PERF_W
+xiao_top = cz1 + XIAO_GRIP_H
+perf_top = cz1 + PERF_H - 4.0                                # top 4 mm stands proud
+members = [
+    (-leg_out, -leg_in, oz, xiao_top),                       # left leg
+    (leg_in, leg_out, oz, perf_top),                         # right leg
+    (-leg_out, leg_out, cz0, cz1),                           # crossbar
+    (xiao_x1 - GRIP, xiao_x1 - GRIP + POST_W, cz1 - 0.5, xiao_top),   # post A (XIAO right edge)
+    (perf_x0 + GRIP - POST_W, perf_x0 + GRIP, cz1 - 0.5, perf_top),   # post B (perfboard left edge)
+]
+carrier = None
+for a, b, z0_, z1_ in members:
+    m = box_x(cx + a, cx + b, leg_y0, leg_y1, z0_, z1_)
+    carrier = m if carrier is None else carrier + m
+def card_slot(edge, inward, pcb_t, z0_, z1_):
+    """Slot for a board edge at x=edge (rel. cx); the member lies on the side `inward` (+1/-1)."""
+    hw = (pcb_t + CARD_SLOT_CLEAR) / 2
+    return box_x(cx + edge - inward * (GRIP + 0.5), cx + edge + inward * 0.4,
+                 bcy - hw, bcy + hw, z0_, z1_ + 1)
+carrier -= card_slot(xiao_x0, -1, XIAO_PCB_T, cz1, xiao_top)
+carrier -= card_slot(xiao_x1, +1, XIAO_PCB_T, cz1, xiao_top)
+carrier -= card_slot(perf_x0, -1, PERF_T, cz1, perf_top)
+carrier -= card_slot(perf_x1, +1, PERF_T, cz1, perf_top)
 
 # ---------------- LID (modelled right side up, exported flipped) ----------------
 LW, LD = W + 2 * (SKIRT_GAP + SKIRT_T), D + 2 * (SKIRT_GAP + SKIRT_T)
@@ -239,33 +299,22 @@ lid -= rbox(W + 2 * SKIRT_GAP, D + 2 * SKIRT_GAP, SKIRT_H + 0.01, OUT_R + SKIRT_
             (-SKIRT_GAP, -SKIRT_GAP, H - SKIRT_H - 0.01))
 # gasket groove over the rim centre-line
 gi = WALL / 2 - GROOVE_W / 2
-groove = rbox(W - 2 * gi, D - 2 * gi, GROOVE_H, OUT_R - gi, (gi, gi, H)) - \
-         rbox(W - 2 * gi - 2 * GROOVE_W, D - 2 * gi - 2 * GROOVE_W, GROOVE_H + 1,
+groove = rbox(W - 2 * gi, D - 2 * gi, GROOVE_H_LID, OUT_R - gi, (gi, gi, H)) - \
+         rbox(W - 2 * gi - 2 * GROOVE_W, D - 2 * gi - 2 * GROOVE_W, GROOVE_H_LID + 1,
               max(OUT_R - gi - GROOVE_W, 0.5), (gi + GROOVE_W, gi + GROOVE_W, H - 0.5))
 lid -= groove
 for bx, by in boss_xy:
     lid -= cyl(LID_T + 2, SCREW_CLEAR / 2, (bx, by, H - 1))
 
-# ---------------- SENSOR FORK ----------------
-FORK_W = 2 * (pillar_cx + PILLAR / 2)
-FORK_D = 14.0
-inner = PCB_W - 2 * GROOVE_DEPTH + 0.2
-fork = cube(FORK_W, FORK_D, FORK_T)
-# slot opens toward -Y (the PCB's component side), runs past the PCB plane
-fork -= cube(inner, FORK_D / 2 + PCB_T / 2 + 0.4 + 1, FORK_T + 2,
-             (FORK_W / 2 - inner / 2, -1, -1))
-for s in (-1, 1):
-    fork -= cyl(FORK_T + 2, 1.2, (FORK_W / 2 + s * pillar_cx, FORK_D / 2, -1))
-
 # ---------------- GASKET (TPU) ----------------
-gasket = rbox(W - 2 * gi - 0.2, D - 2 * gi - 0.2, GROOVE_H + 0.8, OUT_R - gi, (0, 0, 0)) - \
+gasket = rbox(W - 2 * gi - 0.2, D - 2 * gi - 0.2, GROOVE_H_LID + 0.8, OUT_R - gi, (0, 0, 0)) - \
          rbox(W - 2 * gi - 2 * GROOVE_W + 0.2, D - 2 * gi - 2 * GROOVE_W + 0.2, 5,
               max(OUT_R - gi - GROOVE_W, 0.5), (GROOVE_W - 0.2, GROOVE_W - 0.2, -1))
 
 # ---------------- STAKE (print flat; blade lies in X-Y, thickness in Z) ----------------
 _tip = 15.0
-_len = STAKE_DEPTH + SOCKET_H
-_hw = 4.0                         # head overhang each side, rests on the socket top
+_len = STAKE_DEPTH + FLOOR + SLEEVE_H
+_hw = 4.0                         # head overhang each side, rests on the sleeve top
 _hh = 5.0
 _pts = [(STAKE_W / 2, 0), (STAKE_W, _tip), (STAKE_W, _len), (STAKE_W + _hw, _len),
         (STAKE_W + _hw, _len + _hh), (-_hw, _len + _hh), (-_hw, _len), (0, _len), (0, _tip)]
@@ -283,7 +332,10 @@ if __name__ == "__main__":
     os.makedirs(out, exist_ok=True)
     lid_print = lid.rotate([180, 0, 0])
     lid_print = lid_print.translate([0, 0, -lid_print.bounding_box()[2]])
-    parts = {"box": box, "lid": lid_print, "sensor_fork": fork, "gasket_tpu": gasket,
+    carrier_print = carrier.rotate([90, 0, 0])               # back face (+Y) down
+    bb = carrier_print.bounding_box()
+    carrier_print = carrier_print.translate([-bb[0], -bb[1], -bb[2]])
+    parts = {"box": box, "lid": lid_print, "board_carrier": carrier_print, "gasket_tpu": gasket,
              "stake": stake}
     for name, m in parts.items():
         t = to_trimesh(m)

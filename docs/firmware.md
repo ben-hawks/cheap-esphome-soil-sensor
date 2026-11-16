@@ -28,10 +28,10 @@ Calibration is stored on each sensor and edited from Home Assistant, so you neve
 
 1. **Wake it.** Turn the stay-awake toggle on, then wait for the next wake or press reset.
 2. **Dry point:** with the probe in dry air, enter the **Soil moisture raw** reading as **Moisture calibration dry** on the device page (Configuration section).
-3. **Wet point:** dip the probe in water up to the line and wait for a fresh reading. Enter it as **Moisture calibration wet**. The percentage recalculates immediately.
+3. **Wet point:** dip the probe in water up to the depth it's buried to, which is the floor of the box: 13 mm below the line. Wait for a fresh reading. Enter it as **Moisture calibration wet**. The percentage recalculates immediately.
 4. **Back to normal:** turn the toggle off.
 
-Calibrate each probe separately, because these boards differ by 0.1–0.3 V. Example from one unit: 2.52 V dry, 0.80 V wet.
+Calibrate each probe separately, because these boards differ by 0.1–0.3 V. Example from one unit: 2.52 V dry, and 0.80 V wet when dipped all the way to the line (dipped only to the floor, it reads a little higher).
 
 Air-to-water calibration gives every sensor the same scale, but it isn't true volumetric water content: real soil sits somewhere in the middle. For watering decisions, set your thresholds from what each sensor reads when you know the soil is dry or properly watered.
 
