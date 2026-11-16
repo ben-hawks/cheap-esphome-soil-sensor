@@ -202,7 +202,7 @@ binary_sensor:
     on_press:
       - deep_sleep.prevent: deep_sleep_ctl
     on_release:
-      - deep_sleep.enter: deep_sleep_ctl
+      - script.execute: go_to_sleep
 
 script:
   - id: report
@@ -234,4 +234,19 @@ script:
           then:
             - deep_sleep.prevent: deep_sleep_ctl
           else:
-            - deep_sleep.enter: deep_sleep_ctl
+            - script.execute: go_to_sleep
+
+  # ESPHome's own sleep path turns the Thread radio off in the same pass that sends the
+  # API's "disconnecting" message, so Home Assistant usually never gets it, waits out a
+  # 90 s ping timeout and marks every entity unavailable. Send it first and wait for the
+  # clients to hang up, so Home Assistant keeps showing the last readings while we sleep.
+  - id: go_to_sleep
+    mode: single
+    then:
+      - lambda: api::global_api_server->on_shutdown();
+      - wait_until:
+          condition:
+            not:
+              api.connected:
+          timeout: 5s
+      - deep_sleep.enter: deep_sleep_ctl

@@ -8,7 +8,7 @@
 2. **Join Thread** as a minimal end device and register with the border router.
 3. **Wait for Home Assistant.** It waits up to 45 s for Home Assistant specifically: the trigger is the stay-awake toggle's state, which only Home Assistant sends. Other API clients, such as the dashboard's log viewer, can connect and watch, but they don't trigger a report or a sleep.
 4. **Report.** It reads the battery and starts the DS18B20 conversion, powers the moisture probe from D2 for `sensor_settle`, reads it, and powers it off.
-5. **Sleep or stay awake.** If the stay-awake toggle is off, it sleeps for `sleep_time` (15 min). If it's on, it stays awake until you turn the toggle off.
+5. **Sleep or stay awake.** If the stay-awake toggle is off, it tells Home Assistant it's going to sleep, waits up to 5 s for it to hang up, and sleeps for `sleep_time` (15 min). Home Assistant then keeps showing the last readings instead of marking them unavailable. If the toggle is on, it stays awake until you turn the toggle off.
 
 A 60 s failsafe puts it to sleep if Thread or Home Assistant never comes up. An OTA update blocks sleep while it runs, so a slow update over Thread can't be cut off.
 
@@ -69,6 +69,7 @@ actions:
 | Sensor sleeps even though the toggle is on | (Old firmware) only a *change* of the toggle was handled | Fixed: the toggle's state is checked on every report |
 | New build reverts to the old one (`OTA rollback detected!`) | USB serial reset the board within 60 s of the update | Keep USB logs closed for the first minute |
 | Home Assistant doesn't reconnect after several quick resets; border router log shows `NoAck` to the sensor and the sensor logs `SRP ... ResponseTimeout` | The border router still routes to the sensor's previous radio address for a few minutes | Leave it alone for a wake cycle or two. Normal 15-minute wakes aren't affected. |
+| Entities go unavailable about 90 s after each report; the Home Assistant log shows `Ping response not received after 90.0 seconds` and `disconnected (expected=False)` | ESPHome's sleep path turns the Thread radio off before the disconnect message gets out | Fixed by the `go_to_sleep` script, which says goodbye before sleeping |
 | Dashboard says `Timeout while connecting` | The sensor is asleep | Normal. Turn on the toggle to keep it awake. |
 
 ## Tunables (`substitutions`)
