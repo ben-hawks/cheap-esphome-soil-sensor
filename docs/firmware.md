@@ -60,6 +60,13 @@ actions:
       message: "{{ state_attr(trigger.entity_id, 'friendly_name') }} is at {{ trigger.to_state.state }} V. Time to charge."
 ```
 
+## Diagnostics
+
+- **Reset reason:** why the chip last started. Normally *Deep sleep wake*. A crash, watchdog or brownout shows up here for one report, and Home Assistant's history keeps it.
+- **Crash count:** panics, failed asserts and watchdog resets since the counter was flashed. It survives deep sleep and reboots.
+
+The dashboard's log viewer also prints `CRASH DETECTED ON PREVIOUS BOOT` with a partial backtrace on the first wake after a crash.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -70,6 +77,7 @@ actions:
 | New build reverts to the old one (`OTA rollback detected!`) | USB serial reset the board within 60 s of the update | Keep USB logs closed for the first minute |
 | Home Assistant doesn't reconnect after several quick resets; border router log shows `NoAck` to the sensor and the sensor logs `SRP ... ResponseTimeout` | The border router still routes to the sensor's previous radio address for a few minutes | Leave it alone for a wake cycle or two. Normal 15-minute wakes aren't affected. |
 | Entities go unavailable about 90 s after each report; the Home Assistant log shows `Ping response not received after 90.0 seconds` and `disconnected (expected=False)` | ESPHome's sleep path turns the Thread radio off before the disconnect message gets out | Fixed by the `go_to_sleep` script, which says goodbye before sleeping |
+| Occasional `CRASH DETECTED ON PREVIOUS BOOT` (Reason: Abort) right after a report; the sensor reboots, reports again and sleeps normally | An `assert` failing while the sensor shuts down for sleep, most likely in the Thread stack's shutdown. Under investigation. | Harmless apart from one extra wake. Watch **Crash count** to see how often it happens. |
 | Dashboard says `Timeout while connecting` | The sensor is asleep | Normal. Turn on the toggle to keep it awake. |
 
 ## Tunables (`substitutions`)

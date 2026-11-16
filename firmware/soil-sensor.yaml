@@ -41,6 +41,15 @@ esphome:
   on_boot:
     priority: -100 # sensors set up; runs before the network comes up
     then:
+      - lambda: |-
+          // Count crashes (panics, asserts, watchdogs) across reboots; shown in HA.
+          switch (esp_reset_reason()) {
+            case ESP_RST_PANIC: case ESP_RST_INT_WDT: case ESP_RST_TASK_WDT: case ESP_RST_WDT:
+              id(crash_count) += 1;
+              break;
+            default:
+              break;
+          }
       - component.update: battery_voltage
       - lambda: |-
           // Sets the sleep length for this wake; every path to sleep uses it.
@@ -89,6 +98,12 @@ deep_sleep:
   id: deep_sleep_ctl
   run_duration: 60s # failsafe
   sleep_duration: ${sleep_time}
+
+globals:
+  - id: crash_count
+    type: uint32_t
+    restore_value: true
+    initial_value: "0"
 
 one_wire:
   - platform: gpio
@@ -164,6 +179,38 @@ sensor:
     filters:
       - multiply: 2.0
 
+  - platform: template
+    id: crash_count_sensor
+    name: Crash count
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+    lambda: return id(crash_count);
+
+text_sensor:
+  # Why the chip last started: normally "Deep sleep wake". Anything else after a wake
+  # (panic, watchdog, brownout) is a crash or power problem worth looking at.
+  - platform: template
+    id: reset_reason
+    name: Reset reason
+    entity_category: diagnostic
+    update_interval: never
+    lambda: |-
+      switch (esp_reset_reason()) {
+        case ESP_RST_DEEPSLEEP: return {"Deep sleep wake"};
+        case ESP_RST_POWERON: return {"Power on"};
+        case ESP_RST_SW: return {"Software restart"};
+        case ESP_RST_PANIC: return {"Crash (panic/assert)"};
+        case ESP_RST_INT_WDT: return {"Interrupt watchdog"};
+        case ESP_RST_TASK_WDT: return {"Task watchdog"};
+        case ESP_RST_WDT: return {"Watchdog"};
+        case ESP_RST_BROWNOUT: return {"Brownout"};
+        case ESP_RST_EXT: return {"Reset pin"};
+        case ESP_RST_USB: return {"USB reset"};
+        default: return {"Other"};
+      }
+
 number:
   # Per-probe calibration, set from Home Assistant; recomputes moisture on change.
   - platform: template
@@ -222,6 +269,8 @@ script:
             - script.stop: report
       - component.update: soil_temperature # starts the conversion; publishes when done
       - component.update: battery_voltage # read before the probe draws current
+      - component.update: reset_reason
+      - component.update: crash_count_sensor
       - output.turn_on: soil_power
       - delay: ${sensor_settle}
       - component.update: soil_moisture_raw # on_value recomputes the %
