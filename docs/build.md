@@ -16,6 +16,7 @@ Quantities are per sensor.
 | 100 nF ceramic capacitor | 1 | Across the lower divider resistor. Needed because 1 MΩ is too weak a source for the ADC on its own. |
 | 4.7 kΩ resistor | 1 | DS18B20 pull-up. **Check it's kΩ, not Ω:** yellow-violet-black-*brown* on a 5-band resistor. |
 | 26–28 AWG silicone wire | ~30 cm | |
+| JST-PH 2-pin header, top-entry (B2B-PH-K-S) | optional | Replaces the pigtail on the perfboard version: the pack plugs straight into the board |
 | Perfboard, ~30 × 30 mm, 2.54 mm pitch | optional | Holds the divider and battery junction instead of dead-bugging them on the XIAO. See [soldering-perfboard.md](soldering-perfboard.md). |
 | M3 heat-set insert (4.0 mm hole) | 4 | Lid screws |
 | M3 × 10 pan-head screw + nylon washer | 4 | |

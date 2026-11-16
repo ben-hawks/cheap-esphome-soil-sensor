@@ -103,11 +103,43 @@ The checklist in [soldering.md](soldering.md#before-you-start) still applies. Pa
 
 If the board is loose in the rails, add a strip of tape along each side edge. If it's tight, sand the edges or raise `PERF_SLOT_CLEAR` by 0.1.
 
+## Variant: through-hole JST-PH header
+
+If you have a board-mount JST-PH header (top-entry, such as B2B-PH-K-S) instead of a pigtail, the pack plugs straight into the perfboard. This saves two joints and the pigtail.
+
+![Perfboard layout with a JST-PH header](images/perfboard-layout-jst.png)
+
+**What changes from the main layout**
+
+- **Header:** goes in the top-left corner, with its pins in row 1, columns 2 (+) and 3 (−). Its body sits toward the top edge.
+- **BAT+:** column 2 runs from the header down to **S1**. S1 is now the wire to XIAO BAT+.
+- **BAT−:** a link runs along row 1 from column 3 to column 10, then down column 10 to **S9**. S9 is the wire to XIAO BAT−. It crosses above the MID column, which only starts at row 3.
+- **Divider:** R1, R2 and the capacitor stay exactly where they were.
+- **Slots:** only S1, S5 and S9 are used. Nothing goes on S2 or S8.
+
+**Pin pitch.** JST-PH pins are 2.0 mm apart and the perfboard is 2.54 mm. Bend each pin outward by about 0.3 mm with fine pliers, gripping it right at the body so the pin doesn't loosen, until they drop into neighbouring holes. Pressing the header gently against the board while you solder keeps it flat.
+
+**Polarity check, before soldering.** Push the header in, unsoldered, and plug the pack into it. On the solder side, meter row 1:
+
+- **Column 2 positive:** solder it.
+- **Column 3 positive:** pull the header, turn it 180° and refit it. It still fits, with its body now covering row 2. The pins land the other way round.
+
+**Steps**
+
+1. **Divider:** fit R1, R2 and the capacitor as in steps 1–2 above.
+2. **Header:** bend the pins, fit the header and check the polarity. Solder it at row 1, columns 2 and 3.
+3. **Links:** column 2 from row 1 down to S1; column 6 from row 3 down to S5; row 1 from column 3 to column 10, then column 10 down to S9. Solder at every hole they pass through.
+4. **Wires to the XIAO:** cut three 10 cm wires and solder red to S1, blue or yellow to S5, and black to S9. Then continue from step 10 above.
+
+**Test.** The checks above still apply, except that S1–S2 and S8–S9 aren't bridged in this version. With the pack plugged in, S1 to S9 should read the pack voltage, positive on S1.
+
+**Fit in the box.** The plug sticks out about 15 mm from the board face, toward the probe. In the top-left corner it clears the probe's top edge and its connector.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Battery reads 0 | The S5 to D0 wire is open, or column 6 isn't linked to S5 | Check continuity from S5 to D0, and along column 6 |
 | Battery reads about full pack voltage | R2 is open, or column 10 isn't linked to S8/S9 | Check S5 to S9 resistance |
-| Board dead on battery, fine on USB | Pigtail reversed, or S1–S2 / S8–S9 not bridged | Check polarity at the XIAO pads and the slot bridges |
+| Board dead on battery, fine on USB | Pigtail or header reversed, or S1–S2 / S8–S9 not bridged (pigtail version) | Check polarity at the XIAO pads and the slot bridges |
 | Perfboard won't drop into the rails | Board wider than 30 mm, or parts hanging over the side edges | Measure it and set `PERF_W`, or trim the edges |
