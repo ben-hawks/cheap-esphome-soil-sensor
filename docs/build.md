@@ -16,6 +16,7 @@ Quantities are per sensor.
 | 100 nF ceramic capacitor | 1 | Across the lower divider resistor. Needed because 1 MΩ is too weak a source for the ADC on its own. |
 | 4.7 kΩ resistor | 1 | DS18B20 pull-up. **Check it's kΩ, not Ω:** yellow-violet-black-*brown* on a 5-band resistor. |
 | 26–28 AWG silicone wire | ~30 cm | |
+| Perfboard, ~30 × 30 mm, 2.54 mm pitch | optional | Holds the divider and battery junction instead of dead-bugging them on the XIAO. See [soldering-perfboard.md](soldering-perfboard.md). |
 | M3 heat-set insert (4.0 mm hole) | 4 | Lid screws |
 | M3 × 10 pan-head screw + nylon washer | 4 | |
 | M2 × 6 self-tapping screw | 2 | Fixes the probe clip to its pillars |
@@ -47,6 +48,7 @@ On a Bambu X1C, print in an enclosed chamber with little or no part cooling, the
 - **PG7 gland:** screw it into its floor boss. If it binds, raise `PG7_CLEAR` by 0.1.
 - **Battery cradles:** press the cell in. If it's too stiff, set `CRADLE_OPEN` to 18.0; if it's loose, 17.2.
 - **XIAO guide:** slide the board into its rails. The slots assume a 1.0 mm PCB, so measure yours and adjust `XIAO_PCB_T`.
+- **Perfboard guide (optional):** the rear-wall rails assume a 30 × 30 × 1.6 mm board (`PERF_W`, `PERF_H`, `PERF_T`). Set `PERF_GUIDE = False` to leave them out.
 
 Every dimension is a parameter at the top of [`enclosure/soil_enclosure.py`](../enclosure/soil_enclosure.py). After changing one, regenerate the STLs:
 
@@ -62,19 +64,20 @@ python3 enclosure/soil_enclosure.py   # writes enclosure/stl/
 - **Battery:** lies across the front of the box in two snap cradles.
 - **Moisture probe:** stands edge-on in the middle and passes through a slot in the floor. The clip locks its side grooves so the floor sits 13 mm below the probe's "never bury past this" line, inside the maker's recommended band.
 - **XIAO:** stands in a card guide on the right, USB-C up, 13 mm off the wall. Its wired top side faces the open middle of the box; its flat underside faces the wall.
+- **Perfboard (optional):** stands in a card guide on the rear wall, directly behind the probe, 24 mm above the floor. The rails are empty if you use the dead-bug build.
 - **DS18B20:** the tube is buried 33 mm to the left of the probe centre, in the same plane as the probe's board, well clear of the probe's sensing field. Its tip is 6 cm down.
 
 ## Assembly
 
 1. **Inserts and gland.** Press the four M3 heat-set inserts into the corner bosses. Screw the PG7 gland body into the floor boss from inside.
 2. **Coat the probe.** Paint the cut PCB edges along the whole probe, and the component area, with conformal coat or nail polish. Leave the connector clean.
-3. **Solder the XIAO** following [soldering.md](soldering.md). Before soldering the DS18B20, feed its cable up through the gland body, seal insert and cap: the steel tube won't fit through afterwards.
+3. **Solder the XIAO** following [soldering.md](soldering.md), or [soldering-perfboard.md](soldering-perfboard.md) for the perfboard option. Before soldering the DS18B20, feed its cable up through the gland body, seal insert and cap: the steel tube won't fit through afterwards.
 4. **Flash and bench test.** See [firmware.md](firmware.md).
 5. **Fit the probe.** Push it down through the floor slot from inside, components facing the battery side, until the grooves line up with the pillar tops.
 6. **Fit the clip.** Slide the fork in from the battery side so its tines enter both grooves, then screw it to the pillars with two M2 screws.
 7. **Mark the DS18B20 depth.** With the tube hanging below the floor, set its tip 60 mm below the floor's underside. Mark the cable where it leaves the top of the gland body.
 8. **Seal the probe slot** with neutral-cure silicone, inside and out, and let it cure.
 9. **Battery.** Press the pack down into the two cradles with its leads along the top, then plug it in.
-10. **XIAO.** Slide it straight down into the card guide, USB-C up, wired side facing the probe. Coil the spare DS18B20 cable in the rear-left corner.
+10. **XIAO.** Slide it straight down into the card guide, USB-C up, wired side facing the probe. If you built the perfboard, slide it into the rear-wall rails next, component side toward the probe. Coil the spare DS18B20 cable in the rear-left corner.
 11. **Install.** With the lid off, unscrew the gland cap and pull the steel tube up into the box through the gland body. Slide a stake into each socket and press the box down until the floor sits flat on the soil. Push the 6 mm rod down through the gland body about 6 cm and pull it out. Lower the tube into the hole until the cable mark reaches the gland, then tighten the cap. Firm the soil around the edge of the floor.
 12. **Lid.** Seat the gasket, then fit the lid with four M3 × 10 screws and washers. Tighten evenly until the gasket just compresses.

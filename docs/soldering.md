@@ -2,6 +2,8 @@
 
 Each sensor takes about eight solder joints on a bare XIAO ESP32-C6, with no headers and no extra board. Solder the underside first (battery, divider, pull-up), then the top side (both sensors).
 
+Prefer not to dead-bug the divider? The [perfboard option](soldering-perfboard.md) moves the divider and the battery junction onto a small board that slides into the rear wall of the box.
+
 ![Solder map, top side and underside](images/solder-map.png)
 
 The map spreads the divider out so you can see every joint. On the real board it lies flat against the underside, between the BAT pads and D0, inside the board outline and no more than about 4 mm tall. Leave the bottom pin rows (D4–D9) bare: that's where the card guide grips the board.

@@ -69,6 +69,16 @@ XIAO_RAIL_H = 8.0               # covers only the unused bottom pin rows (D4-D6 
 XIAO_WALL_GAP = 13.0            # board plane to right interior wall (underside parts + fingers)
 XIAO_Y0 = 31.4                  # interior Y of the board's front edge
 
+# Optional perfboard (battery junction + divider) in a card guide on the rear wall, behind the
+# probe. Component side faces the probe, solder side faces the wall. Harmless if unused.
+PERF_GUIDE = True
+PERF_W, PERF_H = 30.0, 30.0     # measure yours
+PERF_T = 1.6                    # measure yours; slot = this + PERF_SLOT_CLEAR
+PERF_SLOT_CLEAR = 0.3
+PERF_GRIP = 1.0                 # rail overlap on each side edge (clear of the outer hole columns)
+PERF_WALL_GAP = 4.8             # board mid-plane to rear interior wall (solder side + links)
+PERF_Z0 = 24.0                  # board bottom edge above the floor (clears the probe clip)
+
 # Lid / screws
 BOSS_R = 4.0
 INSERT_D, INSERT_DEPTH = 4.0, 8.0   # M3 heat-set insert (use 2.6 for self-tapping)
@@ -186,6 +196,21 @@ for edge_y, sgn in ((xy0, -1), (xy1, 1)):   # sgn points away from the board
     box += cube(RAIL_X, RAIL_Y, XIAO_RAIL_H, (xbx - RAIL_X / 2, ry0, oz))
     sy0 = edge_y - 0.4 if sgn < 0 else edge_y - XIAO_GRIP - 0.5
     box -= cube(slot_w, XIAO_GRIP + 0.9, XIAO_RAIL_H + 1, (xbx - slot_w / 2, sy0, oz + 0.01))
+
+# perfboard card guide on the rear wall
+if PERF_GUIDE:
+    pby = oy + IY - PERF_WALL_GAP               # board mid-plane Y
+    pslot = PERF_T + PERF_SLOT_CLEAR
+    PRAIL_X, PRAIL_FRONT = 5.0, 2.2             # rail width; rail material in front of the board
+    prail_y0 = pby - pslot / 2 - PRAIL_FRONT
+    prail_h = PERF_Z0 + PERF_H - 4.0            # top 4 mm of the board stands proud for a grip
+    for sg in (-1, 1):
+        edge = cx + sg * PERF_W / 2
+        rx0 = (edge - PERF_GRIP) if sg > 0 else (edge + PERF_GRIP - PRAIL_X)
+        box += cube(PRAIL_X, oy + IY + 0.5 - prail_y0, prail_h, (rx0, prail_y0, oz))
+        # slot: edge clearance 0.4, runs from PERF_Z0 up through the top
+        sx0 = (edge - PERF_GRIP) if sg > 0 else (edge - 0.4)
+        box -= cube(PERF_GRIP + 0.4, pslot, prail_h, (sx0, pby - pslot / 2, oz + PERF_Z0))
 
 # stake sockets, left and right, at mid-depth
 SOCK_INNER = SOCKET_WALL + 2.0     # thicker on the box side so the stake head clears the wall

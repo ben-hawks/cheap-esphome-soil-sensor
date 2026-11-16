@@ -14,7 +14,7 @@ The sensor wakes every 15 minutes, joins Thread, reports to Home Assistant throu
 - **Battery protection.** Below 3.40 V the sensor wakes once a day; below 3.30 V, once a week. A forgotten charge can't run the cell flat.
 - **Stay-awake toggle.** One Home Assistant helper keeps every sensor awake for OTA updates or live logs. Updates are protected from the sleep timer while they run.
 - **Soil temperature at depth.** The DS18B20's steel tube is buried whole, next to the moisture probe and at the same depth, and its cable enters through a PG7 gland.
-- **Printable without supports.** Gasketed lid, snap-in battery cradles, a card guide for the XIAO, a clip that locks the probe at the right depth, and two stakes.
+- **Printable without supports.** Gasketed lid, snap-in battery cradles, card guides for the XIAO and an optional perfboard, a clip that locks the probe at the right depth, and two stakes.
 
 ## Repository layout
 
@@ -26,12 +26,13 @@ The sensor wakes every 15 minutes, joins Thread, reports to Home Assistant throu
 | [`enclosure/stl/`](enclosure/stl) | Ready-to-print STLs |
 | [`docs/build.md`](docs/build.md) | Bill of materials, printing and assembly |
 | [`docs/soldering.md`](docs/soldering.md) | Solder map, step-by-step soldering and bench tests |
+| [`docs/soldering-perfboard.md`](docs/soldering-perfboard.md) | Alternative: divider and battery junction on a small perfboard |
 | [`docs/firmware.md`](docs/firmware.md) | Flashing, Home Assistant setup, calibration, OTA, troubleshooting |
 
 ## Quick start
 
 1. **Print** the parts in ASA: [docs/build.md](docs/build.md#printing).
-2. **Solder** the XIAO: about eight joints, no extra board. See [docs/soldering.md](docs/soldering.md).
+2. **Solder** the XIAO: about eight joints, no extra board. See [docs/soldering.md](docs/soldering.md), or [the perfboard option](docs/soldering-perfboard.md) if you'd rather not dead-bug the divider.
 3. **Flash** the firmware over USB the first time, then add the device in Home Assistant and create the stay-awake helper. See [docs/firmware.md](docs/firmware.md).
 4. **Calibrate** in air and in water from the device page in Home Assistant.
 5. **Assemble and install:** press the box into the soil until the floor sits flat, with the stakes in their sockets.
