@@ -75,14 +75,17 @@ GROOVE_Z = SOIL_FROM_TOP - FLOOR - GROOVE_FROM_TOP   # groove centre above floor
 # press the box in); its sloped top lets the probe snap in from above.
 RAIL_ENGAGE = 1.5               # how far the cheeks overlap the PCB edge
 RAIL_SLOT_CLEAR = 0.3           # slot = PCB_T + this
-CHEEK_T = 3.0                   # cheek thickness (Y)
+CHEEK_T = 4.0                   # cheek thickness (Y), incl. the frame beside the beam
 BEAM_T = 1.6                    # latch beam thickness (X): stiffness
 BEAM_GAP = 0.6                  # PCB edge to beam face
 BEAM_HW = 2.5                   # latch beam half-width (Y)
-LATCH_SLIT = 0.4                # clearance around the beam
+LATCH_SLIT = 0.8                # gap around the beam; below ~0.6 mm it can print fused shut
 LATCH_BASE = 3.0                # beam is anchored below this height
 TOOTH_W = 1.4                   # tooth width (Y), fits the slot
 TOOTH_REACH = 0.2               # tooth tip stops this short of the groove bottom
+TOOTH_RELIEF = 0.8              # cheeks are cut back this far around the tooth
+BEAM_ROOT_T = 0.5               # extra beam thickness at the root, tapering out (less stress there)
+BEAM_TAPER_H = 5.0              # height over which the extra root thickness tapers away
 RAIL_ABOVE = 4.5                # rails and beams continue this far above the groove (finger tab)
 
 # Board carrier (separate part) over the cell
@@ -129,7 +132,7 @@ STAKE_DEPTH = 80.0               # below the floor, incl. tip (probe goes ~54 mm
 STAKE_X = 18.0                   # sleeves at centre +/- this
 SLEEVE_H = 20.0                  # sleeve height above the floor
 SLEEVE_WALL = 2.0
-STAKE_CLEAR = 0.4
+STAKE_CLEAR = 0.7               # total, on width and thickness
 # --------------------------------------------
 
 def cube(x, y, z, at=(0, 0, 0)):
@@ -222,11 +225,24 @@ for s in (-1, 1):
         # side frame beside the beam (joins the cheek, leaves the beam free)
         box += box_x(X(x_in), X(x_rail_out), sy + t * (BEAM_HW + LATCH_SLIT), sy + t * y_cheek,
                      oz - 0.5, oz + rail_top)
-    # the springy beam
-    box += box_x(X(x_beam), X(x_beam_out), sy - BEAM_HW, sy + BEAM_HW, oz + LATCH_BASE - 0.5, oz + rail_top)
-    # tooth: flat underside, 45 deg lead-in on top
+    # cut the cheeks back around the tooth so the tooth can't print fused to them
     tip = PCB_W / 2 - GROOVE_DEPTH + TOOTH_REACH
     root = x_beam + 0.3
+    tooth_top = zb + 0.6 + (root - tip)
+    box -= box_x(X(x_in - 0.01), X(x_cheek_out + 0.01), sy - TOOTH_W / 2 - TOOTH_RELIEF, sy + TOOTH_W / 2 + TOOTH_RELIEF,
+                 zb - TOOTH_RELIEF, tooth_top + TOOTH_RELIEF)
+    # the springy beam: tapered root, rounded top
+    r_top = BEAM_T / 2
+    box += box_x(X(x_beam), X(x_beam_out), sy - BEAM_HW, sy + BEAM_HW, oz + LATCH_BASE - 0.5, oz + rail_top - r_top)
+    cap = Manifold.cylinder(2 * BEAM_HW, r_top, r_top, SEG).rotate([90, 0, 0]).translate(
+        [X(x_beam + r_top), sy + BEAM_HW, oz + rail_top - r_top])
+    box += cap
+    taper = CrossSection([[(x_beam, 0.0), (x_beam_out + BEAM_ROOT_T, 0.0), (x_beam_out, BEAM_TAPER_H), (x_beam, BEAM_TAPER_H)]])
+    taper = taper.extrude(2 * BEAM_HW).rotate([90, 0, 0]).translate([0, BEAM_HW, 0])
+    if s < 0:
+        taper = taper.mirror([1, 0, 0])
+    box += taper.translate([cx, sy, oz + LATCH_BASE - 0.01])
+    # tooth: flat underside, 45 deg lead-in on top
     prof = CrossSection([[(tip, 0.0), (root, 0.0), (root, 0.6 + (root - tip)), (tip, 0.6)]])
     tooth = prof.extrude(TOOTH_W).rotate([90, 0, 0]).translate([0, TOOTH_W / 2, 0])  # profile in XZ, width in Y
     if s < 0:
@@ -335,8 +351,11 @@ if __name__ == "__main__":
     carrier_print = carrier.rotate([90, 0, 0])               # back face (+Y) down
     bb = carrier_print.bounding_box()
     carrier_print = carrier_print.translate([-bb[0], -bb[1], -bb[2]])
+    # latch test piece: the floor around the probe slot with both latch rails
+    _hx = x_rail_out + BEAM_ROOT_T + 1.5
+    latch_test = box ^ box_x(cx - _hx, cx + _hx, sy - y_cheek - 2.5, sy + y_cheek + 2.5, -1, oz + rail_top + 1)
     parts = {"box": box, "lid": lid_print, "board_carrier": carrier_print, "gasket_tpu": gasket,
-             "stake": stake}
+             "stake": stake, "latch_test": latch_test}
     for name, m in parts.items():
         t = to_trimesh(m)
         t.export(os.path.join(out, f"{name}.stl"))

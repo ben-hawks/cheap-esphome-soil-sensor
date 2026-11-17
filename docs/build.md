@@ -36,6 +36,7 @@ None of the parts need supports.
 | --- | --- | --- |
 | `box.stl` | Floor on the bed | 6 perimeters (2.4 mm walls), 15–20% infill, 5 mm brim. 83 × 53 × 61 mm. |
 | `lid.stl` | Top face on the bed (already flipped) | 5 mm brim |
+| `latch_test.stl` | Floor on the bed | Optional, about 15 minutes. The floor around the probe slot with both latch rails, so you can check the click, the depth and the release before printing the box. |
 | `board_carrier.stl` | Back face on the bed (already laid flat) | 4+ perimeters. Holds the XIAO and the perfboard over the battery. |
 | `stake.stl` | Flat | Print 2. 100% infill or 6+ perimeters. |
 | `gasket_tpu.stl` | Flat | TPU, optional |
@@ -46,7 +47,7 @@ On a Bambu X1C, print in an enclosed chamber with little or no part cooling, the
 
 - **PG7 gland:** screw it into its floor boss. If it binds, raise `PG7_CLEAR` by 0.1.
 - **Battery cradles:** press the cell in. If it's too stiff, set `CRADLE_OPEN` to 18.0; if it's loose, 17.2.
-- **Probe latches:** push the probe down through the rails. Both latches should click into its side grooves with the floor 13 mm below the warning line. The groove position comes from the product photo, so measure yours and set `GROOVE_FROM_TOP` if needed. If the probe rocks in the rails, lower `RAIL_SLOT_CLEAR`; if the latches are too stiff, lower `BEAM_T` to 1.4.
+- **Probe latches:** print `latch_test.stl` first if you can, then push the probe down through the rails. Both latches should click into its side grooves with the floor 13 mm below the warning line. The groove position comes from the product photo, so measure yours and set `GROOVE_FROM_TOP` if needed. If the probe rocks in the rails, lower `RAIL_SLOT_CLEAR`; if the latches are too stiff, lower `BEAM_T` to 1.4. Each latch beam should move freely: if one has printed fused to its rail, raise `LATCH_SLIT`.
 - **Board carrier:** slide the XIAO and the perfboard into their slots. The slots assume a 1.0 mm XIAO PCB and a 30 × 30 × 1.6 mm perfboard, so measure yours and adjust `XIAO_PCB_T`, `PERF_W`, `PERF_H` and `PERF_T`. The carrier's legs should drop into the channels on the end walls without forcing.
 
 Every dimension is a parameter at the top of [`enclosure/soil_enclosure.py`](../enclosure/soil_enclosure.py). After changing one, regenerate the STLs:
