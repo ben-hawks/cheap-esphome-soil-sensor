@@ -22,6 +22,25 @@ A 60 s failsafe puts it to sleep if Thread or Home Assistant never comes up. An 
 4. **Add it to Home Assistant.** It shows up as a discovered ESPHome device. Add it using your API key.
 5. **Create the stay-awake helper.** Go to Settings → Devices & services → Helpers → Create helper → Toggle, and name it "Soil sensors stay awake" (`input_boolean.soil_sensors_stay_awake`). One helper serves every sensor. Without it, the sensors still work and simply sleep as normal.
 
+## More than one sensor
+
+Keep one shared copy of the config and give each sensor a three-line file, so every sensor stays on the same firmware:
+
+1. **Shared file:** save `soil-sensor.yaml` in your ESPHome config folder as `.soil-sensor-common.yaml`. The leading dot keeps it off the dashboard's device list.
+2. **One file per sensor,** for example `soil-sensor-2.yaml`:
+
+   ```yaml
+   substitutions:
+     name: soil-sensor-2
+     friendly_name: Soil Sensor 2
+
+   packages:
+     soil: !include .soil-sensor-common.yaml
+   ```
+
+   A sensor file's substitutions override the shared defaults, so you can also give one sensor a different `sleep_time` here.
+3. **To change the firmware,** edit the shared file. Every soil sensor then shows pending changes in the dashboard. Turn the stay-awake toggle on, which wakes all of them, and use *Update All* or install each one. Calibration is stored on each board and isn't affected.
+
 ## Calibration
 
 Calibration is stored on each sensor and edited from Home Assistant, so you never reflash.
